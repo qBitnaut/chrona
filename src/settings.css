@@ -101,7 +101,10 @@ body.settings-window {
 select.twk-field { padding-right: 24px;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%23888' d='M0 0h10L5 6z'/></svg>");
   background-repeat: no-repeat; background-position: right 10px center; }
-select.twk-field option { color: #29261b; }
+/* the native option popup needs explicit colors per theme (CSS vars don't
+   reliably reach it) so dark mode isn't white-on-gray */
+.settings-shell[data-theme="light"] select.twk-field option { background: #ffffff; color: #29261b; }
+.settings-shell[data-theme="dark"] select.twk-field option { background: #262b38; color: #eef1f7; }
 
 .twk-slider { appearance: none; -webkit-appearance: none; width: 100%; height: 4px; margin: 9px 0;
   border-radius: 999px; background: var(--seg-bg); outline: none; }

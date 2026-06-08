@@ -1,6 +1,6 @@
 [package]
 name = "chrona"
-version = "0.1.1"
+version = "0.1.2"
 description = "Chrona — a frameless desktop clock + live-weather glass widget"
 authors = ["qBitnaut"]
 edition = "2021"
@@ -21,6 +21,7 @@ tauri-plugin-autostart = "2.5.1"
 tauri-plugin-window-state = "2.4.1"
 tauri-plugin-single-instance = "2.4.2"
 tauri-plugin-updater = "2.10.1"
+tauri-plugin-dialog = "2"
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

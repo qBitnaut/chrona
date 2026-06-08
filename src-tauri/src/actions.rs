@@ -165,11 +165,6 @@ pub fn reset_position(app: AppHandle) {
     }
 }
 
-#[tauri::command]
-pub async fn check_for_updates(app: AppHandle) -> Result<bool, String> {
-    crate::updater::check_and_install(app).await
-}
-
 /// React to a settings change coming from any window (the settings UI or a menu
 /// toggle). Applies native effects and wakes the weather loop when needed.
 pub fn on_settings_changed(app: &AppHandle, payload: &serde_json::Value) {

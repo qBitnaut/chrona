@@ -78,6 +78,8 @@ body.widget-window {
 .time-period { font-size: 5cqw; font-weight: 500; opacity: .74; letter-spacing: .05em; }
 .time-sec { font-size: 5.4cqw; font-weight: 400; opacity: .5; letter-spacing: .02em;
   font-variant-numeric: tabular-nums; }
+/* Cormorant (Elegant) digits sit low in their line box — lift to match others */
+.widget[data-font="elegant"] .time { transform: translateY(-0.28em); }
 .meta {
   display: flex; align-items: baseline; flex-wrap: nowrap; white-space: nowrap;
   margin-top: 2.4cqw; font-family: 'Sora', sans-serif; font-weight: 400; font-size: 2.95cqw;

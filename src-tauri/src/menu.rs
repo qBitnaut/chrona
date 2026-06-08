@@ -74,11 +74,13 @@ fn build_tray_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
 
 pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     let menu = build_tray_menu(app)?;
+    // NOTE: no .on_menu_event here — menu events are handled by the single
+    // global handler (Builder::on_menu_event). Registering it here too made
+    // every menu event fire twice (toggles cancelled themselves out).
     let mut builder = TrayIconBuilder::with_id(TRAY_ID)
         .tooltip("Chrona")
         .menu(&menu)
         .show_menu_on_left_click(false)
-        .on_menu_event(|app, event| handle_menu_event(app, event.id().as_ref()))
         .on_tray_icon_event(|tray, event| {
             // left-click toggles the widget's visibility
             if let TrayIconEvent::Click {

@@ -35,6 +35,7 @@ pub fn run() {
             Some(vec![]),
         ))
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
         .manage(weather::WeatherState::new())
         .invoke_handler(tauri::generate_handler![
             weather::get_weather,
@@ -42,7 +43,7 @@ pub fn run() {
             weather::geocode_search,
             actions::show_context_menu,
             actions::reset_position,
-            actions::check_for_updates,
+            updater::check_for_updates,
         ])
         // context-menu (popup) events route here
         .on_menu_event(|app, event| menu::handle_menu_event(app, event.id().as_ref()))

@@ -207,6 +207,7 @@ export default function App() {
       ref={rootRef}
       className={`widget${t.pinned ? " pinned" : ""}`}
       data-dark={dark ? 1 : 0}
+      data-font={t.font}
       style={widgetStyle}
       onPointerDown={onPointerDown}
     >
