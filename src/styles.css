@@ -1,0 +1,360 @@
+/* styles.css — Chrona widget window.
+   Ported verbatim from the prototype's weather-FX + layout CSS, with the fake
+   desktop chrome removed and the widget promoted to fill a transparent,
+   Mica-blurred Tauri window. */
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+html, body { background: transparent; }
+body.widget-window {
+  font-family: 'Sora', system-ui, sans-serif;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  /* let the OS window edges (and the Mica backdrop) show through */
+  background: transparent;
+  user-select: none;
+  cursor: default;
+}
+#root { position: fixed; inset: 0; }
+
+/* ── widget shell ─────────────────────────────────────────────────────── */
+.widget {
+  container: wx / inline-size;
+  position: relative; width: 100%;
+  border-radius: var(--radius, 18px);
+  color: var(--ink, #f4f7fb);
+  cursor: grab;
+  isolation: isolate;
+  opacity: var(--widget-op, 1);
+  transition: color .6s ease, background .6s ease, box-shadow .4s ease;
+  background: var(--glass, rgba(16,20,32,.62));
+  -webkit-backdrop-filter: blur(var(--blur, 22px)) saturate(150%);
+  backdrop-filter: blur(var(--blur, 22px)) saturate(150%);
+  border: .75px solid var(--edge, rgba(255,255,255,.16));
+  box-shadow:
+    0 1px 0 var(--edge-hi, rgba(255,255,255,.22)) inset,
+    0 18px 50px -12px rgba(0,0,0,.55),
+    0 4px 16px rgba(0,0,0,.25);
+  overflow: hidden;
+}
+.widget.pinned { cursor: default; }
+.widget:active:not(.pinned) { cursor: grabbing; }
+/* Mica grain */
+.widget::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 4;
+  border-radius: inherit; opacity: var(--grain, .5);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+/* accent wash from top */
+.widget::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(120% 80% at 80% -10%, color-mix(in srgb, var(--accent) 26%, transparent) 0%, transparent 55%);
+  opacity: .9;
+}
+
+.widget-inner { position: relative; z-index: 2; padding: 4.4cqw 4.8cqw; }
+
+/* ── main row: time | weather ─────────────────────────────────────────── */
+.mainrow { display: grid; grid-template-columns: 1.5fr .95fr; align-items: stretch; gap: 3.4cqw; }
+
+/* time column */
+.timecol { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.time {
+  display: flex; align-items: flex-end; gap: .18em; line-height: .82;
+  font-family: var(--cf, 'Jost'); font-weight: var(--cw, 300);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  letter-spacing: -.01em;
+}
+.time-hm { display: inline-flex; align-items: baseline; }
+.time-hm .t-colon { opacity: .8; margin: 0 -.01em; }
+.time-hm .t-h, .time-hm .t-m { font-size: 18.5cqw; }
+.time-hm .t-colon { font-size: 15cqw; }
+.time-side {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end;
+  line-height: 1.04; margin-bottom: 1.4cqw; gap: .3cqw;
+}
+.time-period { font-size: 5cqw; font-weight: 500; opacity: .74; letter-spacing: .05em; }
+.time-sec { font-size: 5.4cqw; font-weight: 400; opacity: .5; letter-spacing: .02em;
+  font-variant-numeric: tabular-nums; }
+.meta {
+  display: flex; align-items: baseline; flex-wrap: nowrap; white-space: nowrap;
+  margin-top: 2.4cqw; font-family: 'Sora', sans-serif; font-weight: 400; font-size: 2.95cqw;
+  color: var(--ink-2, rgba(244,247,251,.62)); letter-spacing: .01em;
+}
+.meta-main { white-space: nowrap; }
+.meta-sep { margin: 0 .4em; opacity: .36; }
+.meta-temp { flex-shrink: 0; color: var(--ink, #f4f7fb); font-weight: 500; opacity: .92; }
+.meta-temp::before { content: '\00B7'; margin: 0 .42em; opacity: .36; font-weight: 400;
+  color: var(--ink-2); }
+
+/* weather column */
+.weather { position: relative; overflow: hidden; min-height: 36cqw; }
+.wx-stage { position: absolute; inset: 0; z-index: 0;
+  -webkit-mask:
+    linear-gradient(to right, transparent, #000 26%, #000 85%, rgba(0,0,0,.6)) no-repeat,
+    linear-gradient(to bottom, transparent, #000 16%, #000 76%, transparent) no-repeat;
+  -webkit-mask-composite: source-in;
+  mask:
+    linear-gradient(to right, transparent, #000 26%, #000 85%, rgba(0,0,0,.6)) no-repeat,
+    linear-gradient(to bottom, transparent, #000 16%, #000 76%, transparent) no-repeat;
+  mask-composite: intersect; }
+.wx-info {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+  display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-end;
+  padding: 8cqw 0 0; text-align: right;
+}
+.wx-temp {
+  font-family: var(--cf, 'Jost'); font-weight: var(--cw-temp, 400); line-height: .86;
+  font-size: 14cqw; font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 1px var(--glass-solid), 0 2px 14px var(--glass-solid), 0 0 3px var(--glass-solid);
+}
+.wx-temp .wx-deg { font-size: .5em; vertical-align: top; opacity: .65; margin-left: .02em; }
+.wx-cond { font-size: 3.7cqw; font-weight: 500; margin-top: .5cqw; opacity: .96;
+  text-shadow: 0 1px 2px var(--glass-solid), 0 0 6px var(--glass-solid); }
+.wx-hilo { display: flex; gap: 1.8cqw; font-size: 3.4cqw; margin-top: 1.2cqw;
+  color: var(--ink-2); font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px var(--glass-solid); }
+.wx-hilo .wx-hi { color: var(--ink); opacity: .85; }
+
+/* full-width readout strip below the main row (feels / humidity / wind / sun) */
+.wx-stats { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end;
+  gap: 1.4cqw 4cqw; margin-top: 2.6cqw; font-size: 2.9cqw; color: var(--ink-2);
+  font-variant-numeric: tabular-nums; }
+.wx-stats span { display: inline-flex; align-items: center; gap: .9cqw; white-space: nowrap; }
+.wx-stats svg { width: 3.4cqw; height: 3.4cqw; opacity: .85; fill: none; stroke: currentColor;
+  stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ── world-clock rows — seamless section flowing from the main block ───── */
+.tz-ext { container: tzx / inline-size; position: relative;
+  background: color-mix(in srgb, var(--glass, rgba(16,20,32,.62)) 84%, var(--accent) 16%); }
+.tz-ext::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent,
+    color-mix(in srgb, var(--ink) 15%, transparent) 16% 84%, transparent); }
+/* each row carries a subtle wash in the accent of *its own* time of day
+   (--za is set per-row from the zone's local hour) */
+.tzx-card { display: flex; align-items: center; gap: 3cqw; padding: 2.9cqw 4.8cqw;
+  position: relative; --za: var(--accent);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--za) 15%, transparent) 0%, transparent 54%),
+    color-mix(in srgb, var(--za) 5%, transparent);
+  transition: background .8s ease; }
+/* a touch dimmer at night so day-vs-night reads at a glance */
+.tzx-card[data-day="0"] { background:
+    linear-gradient(90deg, color-mix(in srgb, var(--za) 17%, transparent) 0%, transparent 54%),
+    color-mix(in srgb, var(--za) 7%, transparent); }
+.tzx-tab { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 3cqw;
+  letter-spacing: .04em; min-width: 9cqw; padding: 1.1cqw 2cqw; border-radius: 1.8cqw;
+  text-align: center;
+  color: color-mix(in srgb, var(--za) 74%, var(--ink));
+  background: color-mix(in srgb, var(--za) 18%, transparent);
+  transition: color .8s ease, background .8s ease; }
+.tzx-city { margin-left: auto; padding-left: 3cqw; text-align: right;
+  font-family: 'Sora', sans-serif; font-weight: 400; font-size: 3.4cqw;
+  color: var(--ink-2); letter-spacing: .01em; }
+.tzx-time { font-family: 'JetBrains Mono', monospace;
+  font-weight: 500; font-size: calc(4cqw * var(--tzx-scale, 1)); letter-spacing: .02em;
+  font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--ink) 90%, var(--za)); }
+.tzx-zulu .tzx-tab { color: color-mix(in srgb, var(--za) 90%, var(--ink));
+  background: color-mix(in srgb, var(--za) 26%, transparent); }
+.tzx-zulu .tzx-time { color: var(--za); font-weight: 700; }
+
+/* ── footer / status ──────────────────────────────────────────────────── */
+.wfoot { display: flex; align-items: center; justify-content: flex-end; gap: 1.2cqw;
+  margin-top: 2cqw; font-size: 2.1cqw; color: var(--ink-2); opacity: .55; }
+.wstatus { display: inline-flex; align-items: center; gap: .9cqw; }
+.wdot { width: 1.2cqw; height: 1.2cqw; border-radius: 50%; background: #57c977; }
+.wdot.mock { background: #e0a24a; }
+
+/* hover controls */
+.wctl { position: absolute; top: 2.4cqw; right: 2.8cqw; z-index: 6; display: flex; gap: 1.4cqw;
+  opacity: 0; transition: opacity .2s ease; }
+.widget:hover .wctl { opacity: 1; }
+.wctl button { -webkit-appearance: none; appearance: none; width: 6.4cqw; height: 6.4cqw;
+  min-width: 22px; min-height: 22px; border-radius: 50%; cursor: pointer;
+  background: var(--tz-bg, rgba(255,255,255,.1)); color: var(--ink);
+  border: .5px solid var(--edge); display: grid; place-items: center; font-size: 3.2cqw; }
+.wctl button:hover { background: rgba(255,255,255,.2); }
+
+/* resize handle (invisible hit area, drives native East-edge window resize) */
+.resize {
+  position: absolute; right: 0; bottom: 0; width: 26px; height: 26px; z-index: 7;
+  cursor: nwse-resize; touch-action: none;
+}
+
+/* ── weather-fx visuals ───────────────────────────────────────────────── */
+.wx { position: absolute; inset: 0; overflow: hidden; }
+.wx-ambient { position: absolute; inset: 0;
+  background: radial-gradient(70% 60% at 70% 28%, rgba(255,255,255,.12), transparent 70%); }
+.wx-ambient[data-day="0"] { background: radial-gradient(70% 60% at 70% 26%, rgba(140,160,220,.16), transparent 72%); }
+
+.wx-canvas { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+
+/* sun */
+.wx-sun { position: absolute; top: 8%; right: 13%; width: 42%; aspect-ratio: 1; z-index: 1; }
+.wx-sun-core { position: absolute; inset: 16%; border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, #fff5cf, #ffd86b 46%, #ffb13d 78%);
+  box-shadow: 0 0 26px 6px rgba(255,193,92,.55), 0 0 60px 18px rgba(255,176,60,.32); }
+.wx-rays { position: absolute; inset: -34%; border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 8deg, rgba(255,206,110,.5) 9deg 11deg, transparent 12deg 30deg);
+  -webkit-mask: radial-gradient(circle, transparent 38%, #000 40% 60%, transparent 62%);
+          mask: radial-gradient(circle, transparent 38%, #000 40% 60%, transparent 62%); }
+.wx-sun[data-anim="1"] .wx-rays { animation: wx-spin 26s linear infinite; }
+.wx-sun[data-anim="1"] .wx-sun-core { animation: wx-pulse 4.5s ease-in-out infinite; }
+@keyframes wx-spin { to { transform: rotate(360deg); } }
+@keyframes wx-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+
+/* moon */
+.wx-moon { position: absolute; top: 13%; right: 18%; width: 26%; aspect-ratio: 1; z-index: 1; }
+.wx-moon-core { position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(circle at 36% 32%, #fdfbff, #d7def0 60%, #aeb8d4);
+  box-shadow: 0 0 24px 4px rgba(200,214,255,.45); }
+.wx-moon-shadow { position: absolute; inset: -6% -6% -6% 30%; border-radius: 50%;
+  background: var(--glass-solid, #11162a); filter: blur(1px); }
+
+/* clouds */
+.wx-clouds { position: absolute; inset: 0; z-index: 2; }
+.wx-cloud { position: absolute; width: 56%; }
+.wx-cloud-back { top: 30%; left: -8%; width: 60%; opacity: .9; }
+.wx-cloud-front { top: 46%; left: 24%; width: 64%; }
+.wx-cloud-extra { top: 16%; left: 30%; width: 46%; opacity: .85; }
+.wx-clouds[data-anim="1"] .wx-cloud-back { animation: wx-drift1 16s ease-in-out infinite; }
+.wx-clouds[data-anim="1"] .wx-cloud-front { animation: wx-drift2 13s ease-in-out infinite; }
+.wx-clouds[data-anim="1"] .wx-cloud-extra { animation: wx-drift1 19s ease-in-out infinite reverse; }
+@keyframes wx-drift1 { 0%,100% { transform: translateX(-4%); } 50% { transform: translateX(8%); } }
+@keyframes wx-drift2 { 0%,100% { transform: translateX(5%); } 50% { transform: translateX(-7%); } }
+
+/* stars */
+.wx-stars { position: absolute; inset: 0; z-index: 1; }
+.wx-stars span { position: absolute; border-radius: 50%; background: #fff;
+  box-shadow: 0 0 4px #fff; animation: wx-twinkle 2.5s ease-in-out infinite; }
+@keyframes wx-twinkle { 0%,100% { opacity: .25; transform: scale(.7); } 50% { opacity: 1; transform: scale(1); } }
+
+/* fog */
+.wx-fog { position: absolute; inset: 0; z-index: 2; }
+.wx-fog i { position: absolute; left: -30%; width: 160%; height: 18%; border-radius: 50%;
+  background: linear-gradient(90deg, transparent, rgba(210,216,228,.5), transparent);
+  filter: blur(6px); animation: wx-fogmove linear infinite; }
+@keyframes wx-fogmove { from { transform: translateX(-12%); } to { transform: translateX(12%); } }
+
+/* lightning */
+.wx-flash { position: absolute; inset: 0; z-index: 3; background: rgba(244,240,200,.9);
+  pointer-events: none; transition: opacity .12s linear; mix-blend-mode: screen; }
+.wx-bolt { position: absolute; top: 24%; left: 42%; width: 16%; z-index: 4;
+  filter: drop-shadow(0 0 8px rgba(255,250,180,.9)); transition: opacity .12s linear; }
+
+/* card-wide diffused lightning wash — brightest near the storm, fades across the card */
+.widget-flash { position: absolute; inset: 0; z-index: 5; pointer-events: none;
+  border-radius: inherit; mix-blend-mode: screen; transition: opacity .16s ease;
+  background: radial-gradient(155% 145% at 74% 14%,
+    rgba(232,240,255,.95) 0%, rgba(212,228,255,.62) 28%, rgba(198,216,255,.36) 52%,
+    rgba(184,206,255,.16) 74%, transparent 90%); }
+
+/* ── severe-weather scenes ────────────────────────────────────────────── */
+/* wind gusts */
+.wx-wind { position: absolute; inset: 0; z-index: 2; }
+.wx-wind-line { position: absolute; left: 0; height: 8%; overflow: visible; opacity: 0;
+  will-change: transform, opacity; animation: wx-gust cubic-bezier(.45,0,.55,1) infinite; }
+@keyframes wx-gust {
+  0% { transform: translateX(-115%); opacity: 0; }
+  22% { opacity: var(--o, .5); } 70% { opacity: var(--o, .5); }
+  100% { transform: translateX(120%); opacity: 0; } }
+
+/* ice / freeze */
+.wx-ice { position: absolute; inset: 0; z-index: 2; }
+.wx-frost { position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgba(200,230,255,.3), transparent 42%),
+    radial-gradient(120% 80% at 100% 0%, rgba(200,230,255,.24), transparent 44%),
+    radial-gradient(120% 80% at 0% 100%, rgba(190,225,255,.2), transparent 42%),
+    radial-gradient(120% 80% at 100% 100%, rgba(190,225,255,.22), transparent 44%); }
+.wx-ice-x { position: absolute; transform-origin: center; opacity: .2;
+  filter: drop-shadow(0 0 3px rgba(190,225,255,.7)); animation: wx-iceglint ease-in-out infinite; }
+@keyframes wx-iceglint {
+  0%, 100% { opacity: .16; transform: scale(.7) rotate(0deg); }
+  50% { opacity: .95; transform: scale(1.12) rotate(45deg); } }
+
+/* extreme heat */
+.wx-heat { position: absolute; inset: 0; z-index: 1; }
+.wx-heat-sun { position: absolute; top: 5%; right: 11%; width: 44%; aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle at 42% 38%, #fff1cf, #ffae4e 42%, #ff6a2e 80%);
+  box-shadow: 0 0 40px 12px rgba(255,120,50,.45), 0 0 90px 30px rgba(255,90,40,.22);
+  animation: wx-heatpulse 3.6s ease-in-out infinite; }
+@keyframes wx-heatpulse {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.05); filter: brightness(1.12); } }
+.wx-heat-waves { position: absolute; inset: 0; z-index: 2; }
+.wx-heat-waves i { position: absolute; bottom: 8%; width: 9%; height: 64%; border-radius: 50%;
+  background: linear-gradient(to top, rgba(255,190,130,0), rgba(255,205,155,.24), rgba(255,190,130,0));
+  filter: blur(3px); animation: wx-shimmer 3.2s ease-in-out infinite; }
+@keyframes wx-shimmer {
+  0% { transform: translateY(10%) scaleX(1); opacity: 0; }
+  30% { opacity: .8; } 50% { transform: translateY(-4%) scaleX(1.15); }
+  100% { transform: translateY(-22%) scaleX(.9); opacity: 0; } }
+
+/* tornado */
+.wx-tornado { position: absolute; inset: 0; z-index: 2; }
+.wx-twist-cloud { position: absolute; top: 0; left: -12%; right: -12%; height: 36%; filter: blur(2px);
+  background:
+    radial-gradient(58% 100% at 28% 45%, rgba(74,80,94,.96), transparent 70%),
+    radial-gradient(58% 100% at 68% 38%, rgba(60,66,82,.96), transparent 72%),
+    radial-gradient(46% 90% at 90% 50%, rgba(70,76,92,.9), transparent 72%),
+    linear-gradient(to bottom, rgba(66,72,88,.92), transparent); }
+.wx-twist { position: absolute; top: 4%; left: 50%; width: 40%; height: 92%;
+  transform: translateX(-50%); transform-origin: 50% 6%; animation: wx-sway 4.2s ease-in-out infinite; }
+.wx-twist svg { width: 100%; height: 100%; filter: drop-shadow(0 6px 12px rgba(20,24,34,.38)); }
+@keyframes wx-sway {
+  0%, 100% { transform: translateX(-51%) rotate(-2.2deg); }
+  50% { transform: translateX(-49%) rotate(2.2deg); } }
+.wx-twist-stripes { animation: wx-stripe 1.8s linear infinite; }
+@keyframes wx-stripe {
+  0% { opacity: .2; transform: translateY(-2px); }
+  50% { opacity: .55; } 100% { opacity: .2; transform: translateY(5px); } }
+.wx-twist-dust { position: absolute; bottom: 3%; left: 50%; width: 54%; height: 16%;
+  transform: translateX(-50%); filter: blur(5px);
+  background: radial-gradient(ellipse 60% 100% at center, rgba(120,126,140,.55), transparent 72%);
+  animation: wx-dust 3s ease-in-out infinite; }
+@keyframes wx-dust {
+  0%, 100% { transform: translateX(-52%) scaleX(1); opacity: .45; }
+  50% { transform: translateX(-48%) scaleX(1.18); opacity: .7; } }
+
+/* flood */
+.wx-flood { position: absolute; left: 0; right: 0; bottom: 0; height: 34%; z-index: 2; overflow: hidden; }
+.wx-flood-wave { position: absolute; left: -50%; bottom: 0; width: 200%; height: 100%; }
+.wx-flood-w1 { opacity: .9; animation: wx-wave1 6s linear infinite; }
+.wx-flood-w2 { animation: wx-wave2 9s linear infinite; }
+@keyframes wx-wave1 { from { transform: translateX(0); } to { transform: translateX(-25%); } }
+@keyframes wx-wave2 { from { transform: translateX(-22%); } to { transform: translateX(3%); } }
+
+/* blizzard whiteout gusts */
+.wx-whiteout { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.wx-whiteout i { position: absolute; left: -40%; width: 180%; height: 32%; border-radius: 50%;
+  background: linear-gradient(90deg, transparent, rgba(245,250,255,.5), transparent);
+  filter: blur(8px); animation: wx-gustband linear infinite; }
+@keyframes wx-gustband { from { transform: translateX(-15%); } to { transform: translateX(15%); } }
+
+/* per-condition ambient tints */
+.wx[data-cond="heat"] .wx-ambient { background: radial-gradient(75% 65% at 70% 24%, rgba(255,160,90,.22), transparent 72%); }
+.wx[data-cond="icy"] .wx-ambient,
+.wx[data-cond="blizzard"] .wx-ambient { background: radial-gradient(82% 72% at 55% 30%, rgba(180,215,255,.2), transparent 76%); }
+.wx[data-cond="tornado"] .wx-ambient { background: radial-gradient(82% 82% at 50% 20%, rgba(90,96,110,.32), transparent 80%); }
+.wx[data-cond="flood"] .wx-ambient { background: radial-gradient(82% 72% at 60% 26%, rgba(90,130,180,.22), transparent 76%); }
+.wx[data-cond="windy"] .wx-ambient { background: radial-gradient(75% 65% at 60% 28%, rgba(200,220,240,.16), transparent 74%); }
+
+/* ── reflow breakpoints ───────────────────────────────────────────────── */
+@container wx (max-width: 400px) {
+  .meta-temp { display: none; }
+  .wfoot { font-size: 3.4cqw; }
+}
+@container wx (max-width: 320px) {
+  .time-sec { display: none; }
+  .wx-hilo { display: none; }
+  .tz-time { font-size: 4.4cqw; }
+  .tz-abbr { font-size: 3.4cqw; }
+}
+@container wx (max-width: 250px) {
+  .mainrow { grid-template-columns: 1fr; }
+  .weather { min-height: 44cqw; margin-top: 3cqw; }
+  .wx-info { align-items: flex-start; text-align: left; }
+}
