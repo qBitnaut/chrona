@@ -1,7 +1,9 @@
 name: Release
 
-# Tag a version (e.g. v0.1.0) to build the Windows installers, sign them for the
-# updater, and publish a GitHub Release with a `latest.json` for auto-update.
+# Tag a version (e.g. v0.1.0) to build the Windows installers (x64 + ARM64),
+# sign them for the updater, and publish a GitHub Release with a single
+# `latest.json` whose per-architecture entries let each machine auto-update to
+# the right build.
 on:
   push:
     tags:
@@ -13,7 +15,23 @@ permissions:
 
 jobs:
   release:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      # sequential so each arch merges its entry into the release's latest.json
+      # (rather than racing/overwriting it)
+      max-parallel: 1
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: ""
+          - arch: arm64
+            runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            # NSIS is the updater format on Windows and the most reliable on ARM
+            bundles: "--bundles nsis"
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,16 +49,19 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
       - name: Cache Rust
         uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          key: ${{ matrix.target }}
 
       - name: Install frontend dependencies
         run: pnpm install
 
-      - name: Build, sign, and release
+      - name: Build, sign, and release (${{ matrix.arch }})
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,11 +74,13 @@ jobs:
             Chrona — a frameless desktop clock + live-weather glass widget for Windows.
 
             ## Install
-            Download **`Chrona_*_x64-setup.exe`** (recommended) or the **`.msi`** below and run it.
-            Requires the Microsoft WebView2 runtime (preinstalled on Windows 11).
+            Download the installer for your PC and run it:
+            - **x64** (most PCs): `Chrona_*_x64-setup.exe`
+            - **ARM64** (Surface / Snapdragon): `Chrona_*_arm64-setup.exe`
 
+            Requires the Microsoft WebView2 runtime (preinstalled on Windows 11).
             Once installed, Chrona keeps itself up to date automatically.
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: true
-          args: ""
+          args: ${{ matrix.bundles }} --target ${{ matrix.target }}
