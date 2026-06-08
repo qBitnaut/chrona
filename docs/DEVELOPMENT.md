@@ -10,7 +10,7 @@ small release binary, low idle CPU/RAM (animations pause when hidden).
 |------|-------|
 | **Rust** (stable, MSVC) | `rustup default stable-x86_64-pc-windows-msvc` |
 | **Visual Studio Build Tools** | "Desktop development with C++" (MSVC linker) |
-| **Node 18+** & **pnpm** | `npm i -g pnpm` |
+| **Bun** | [bun.com](https://bun.com) — the JS runtime / package manager |
 | **WebView2 Runtime** | Preinstalled on Win11; [Evergreen installer](https://developer.microsoft.com/microsoft-edge/webview2/) for Win10 |
 
 > Mica needs **Windows 11**; on Windows 10 the app falls back to Acrylic.
@@ -19,17 +19,17 @@ small release binary, low idle CPU/RAM (animations pause when hidden).
 ## Develop
 
 ```powershell
-pnpm install
-pnpm tauri dev
+bun install
+bun run tauri dev
 ```
 
-`pnpm tauri dev` starts Vite on `localhost:1420` and launches the widget against
-it.
+`bun run tauri dev` starts Vite on `localhost:1420` and launches the widget
+against it.
 
 ## Build installers
 
 ```powershell
-pnpm tauri build
+bun run tauri build
 ```
 
 Produces **MSI** + **NSIS** installers under
@@ -40,8 +40,8 @@ window).
 Regenerate icons after changing the art:
 
 ```powershell
-node scripts/gen-icon.mjs        # writes icon-src.png
-pnpm tauri icon icon-src.png     # regenerates src-tauri/icons/*
+bun scripts/gen-icon.mjs          # writes icon-src.png
+bun run tauri icon icon-src.png   # regenerates src-tauri/icons/*
 ```
 
 ## Architecture
@@ -139,7 +139,7 @@ A minisign keypair signs update artifacts:
   sign. (The key has no password, so `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` is
   unset/empty.)
 
-Generate a fresh keypair with `pnpm tauri signer generate -w <path>`.
+Generate a fresh keypair with `bun run tauri signer generate -w <path>`.
 
 ### How updates reach users
 

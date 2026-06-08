@@ -1,6 +1,6 @@
 [package]
 name = "chrona"
-version = "0.1.0"
+version = "0.1.1"
 description = "Chrona — a frameless desktop clock + live-weather glass widget"
 authors = ["qBitnaut"]
 edition = "2021"

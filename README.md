@@ -62,12 +62,12 @@ sample data.
 ## Building from source
 
 Chrona is built with [Tauri 2](https://tauri.app) (Rust) and a bundled
-React/Canvas frontend.
+React/Canvas frontend, using [Bun](https://bun.com) as the JS toolchain.
 
 ```powershell
-pnpm install
-pnpm tauri dev      # run locally
-pnpm tauri build    # build installers
+bun install
+bun run tauri dev      # run locally
+bun run tauri build    # build installers
 ```
 
 See **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** for prerequisites,
