@@ -2,7 +2,6 @@
 // applying window effects (always-on-top, taskbar, pin), autostart, opening the
 // settings window, and the small commands the frontend calls.
 
-use tauri::menu::ContextMenu;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
@@ -44,6 +43,7 @@ pub fn get_number(app: &AppHandle, key: &str, default: f64) -> f64 {
 /// (Re)apply the backdrop material (and, for glass/none, the rounded region).
 pub fn apply_material(app: &AppHandle) {
     if let Some(win) = app.get_webview_window(MAIN_WINDOW) {
+        crate::window_fx::allow_programmatic_resize(&win);
         let kind = get_string(app, "material", "mica");
         crate::window_fx::apply_material(&win, &kind, get_number(app, "radius", 18.0));
     }
@@ -151,11 +151,21 @@ pub fn toggle_visibility(app: &AppHandle) {
 }
 
 // ── commands ─────────────────────────────────────────────────────────────────
+/// The widget sizes itself (width from size%, height auto-fitted to content),
+/// but plain `setSize` is a no-op on Wayland — so sizing goes through the
+/// backend, which knows the per-platform trick.
 #[tauri::command]
-pub fn show_context_menu(app: AppHandle, window: tauri::Window) {
-    if let Ok(menu) = crate::menu::build_context_menu(&app) {
-        let _ = menu.popup(window);
+pub fn set_widget_size(app: AppHandle, width: f64, height: f64) {
+    if let Some(win) = app.get_webview_window(MAIN_WINDOW) {
+        crate::window_fx::set_widget_size(&win, width, height);
     }
+}
+
+/// `x`/`y` are the click point in window-relative logical pixels — Wayland
+/// needs them to anchor the popup (see `menu::popup_context_menu`).
+#[tauri::command]
+pub fn show_context_menu(app: AppHandle, window: tauri::Window, x: f64, y: f64) {
+    crate::menu::popup_context_menu(&app, window, x, y);
 }
 
 #[tauri::command]

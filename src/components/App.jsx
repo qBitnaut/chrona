@@ -38,6 +38,12 @@ function deriveLive(cond, d) {
   return cond;
 }
 
+// Linux has no DWM backdrop; the compositor draws the blur behind the window
+// and clips its corners. Keep this in step with the `rounding` in the Chrona
+// window rule (~/.config/hypr/hyprland.lua on Omarchy).
+const IS_LINUX = /Linux/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent);
+const LINUX_BACKDROP_RADIUS = 18;
+
 function glassVars(dark, bgOp, accent) {
   const a = Math.max(0, Math.min(1, bgOp / 100));
   if (dark) {
@@ -118,15 +124,29 @@ export default function App() {
   }, []);
 
   // ── interaction ─────────────────────────────────────────────────────────
-  // Suppress the WebView2 default context menu everywhere and open our native
+  // Suppress the webview's default context menu everywhere and open our native
   // menu instead. Capture phase so it beats the webview's default.
+  //
+  // Linux pops the menu on button *release* rather than on the contextmenu
+  // event (which fires on press). GTK deactivates a menu whose triggering
+  // button comes up more than a few hundred ms after it mapped, so a
+  // press-triggered menu survives a 200ms flick and vanishes on any click held
+  // longer — measured. Waiting for the release means there is no pending
+  // release left to dismiss it.
   React.useEffect(() => {
     const onCtx = (e) => {
       e.preventDefault();
-      showContextMenu();
+      if (!IS_LINUX) showContextMenu(e.clientX, e.clientY);
+    };
+    const onPointerUp = (e) => {
+      if (IS_LINUX && e.button === 2) showContextMenu(e.clientX, e.clientY);
     };
     document.addEventListener("contextmenu", onCtx, true);
-    return () => document.removeEventListener("contextmenu", onCtx, true);
+    document.addEventListener("pointerup", onPointerUp, true);
+    return () => {
+      document.removeEventListener("contextmenu", onCtx, true);
+      document.removeEventListener("pointerup", onPointerUp, true);
+    };
   }, []);
 
   const onPointerDown = (e) => {
@@ -180,8 +200,12 @@ export default function App() {
   const cfWeight = t.font === "elegant" ? Math.min(weight, 600) : weight;
   // blur materials (Mica/Acrylic/Mica Alt) are DWM-rounded at ~8px; the CSS card
   // matches that. Glass/None are clipped to a region at the chosen radius.
+  // On Linux there's no DWM: the compositor supplies the blur *and* the corner
+  // clip, so the card has to match the window rule's rounding instead (see the
+  // Chrona block in ~/.config/hypr/hyprland.lua) or the gap between the two
+  // radii shows as bare blur.
   const isBackdrop = ["mica", "acrylic", "tabbed"].includes(t.material);
-  const effRadius = isBackdrop ? 8 : t.radius;
+  const effRadius = isBackdrop ? (IS_LINUX ? LINUX_BACKDROP_RADIUS : 8) : t.radius;
   const widgetStyle = {
     ...glassVars(dark, t.bgOpacity, theme.accent),
     "--radius": `${effRadius}px`,
@@ -211,9 +235,15 @@ export default function App() {
       style={widgetStyle}
       onPointerDown={onPointerDown}
     >
-      <div className="wctl">
-        <button title="Refresh weather" onPointerDown={(e) => e.stopPropagation()} onClick={refresh}>⟳</button>
-      </div>
+      {/* Hover-revealed refresh. Hidden on Linux: WebKitGTK holds a stale
+          :hover on the card once the pointer leaves an undecorated Wayland
+          surface, so `opacity: 0` never comes back and the button sits there
+          permanently. Weather still refreshes on the interval. */}
+      {!IS_LINUX && (
+        <div className="wctl">
+          <button title="Refresh weather" onPointerDown={(e) => e.stopPropagation()} onClick={refresh}>⟳</button>
+        </div>
+      )}
 
       <div className="widget-inner">
         <div className="mainrow">

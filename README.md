@@ -1,9 +1,9 @@
 # Chrona
 
-A frameless desktop **clock + live-weather glass widget** for Windows. A large
-tabular clock, a living animated weather scene, and a stack of world clocks —
-each tinted by the time of day in its own zone — floating on your desktop as a
-translucent Mica/Acrylic card.
+A frameless desktop **clock + live-weather glass widget** for Windows and Linux.
+A large tabular clock, a living animated weather scene, and a stack of world
+clocks — each tinted by the time of day in its own zone — floating on your
+desktop as a translucent Mica/Acrylic card.
 
 <p align="center">
   <img src="docs/screenshot.png" alt="Chrona widget — clock, weather, and time-of-day-tinted world clocks" width="320" />
@@ -28,17 +28,24 @@ translucent Mica/Acrylic card.
 
 ## Install
 
-1. Go to the [**Releases**](https://github.com/qBitnaut/chrona/releases/latest) page.
-2. Download **`Chrona_x.y.z_x64-setup.exe`** (recommended) — or the `.msi` if you
-   prefer / deploy at scale — and run it.
-3. Launch **Chrona**. It appears as a floating widget on your desktop.
+Everything is on the [**Releases**](https://github.com/qBitnaut/chrona/releases/latest) page.
+
+**Windows** — download `Chrona_x.y.z_x64-setup.exe` (or `_arm64-` for Surface /
+Snapdragon) and run it. Chrona then keeps itself up to date automatically.
 
 > **Windows 10:** install the free [WebView2 runtime](https://developer.microsoft.com/microsoft-edge/webview2/)
 > if it isn't already present. Windows 11 has it built in. Mica needs Windows 11;
 > on Windows 10 the glass falls back to Acrylic automatically.
 
-Chrona keeps itself up to date — when a new version is released it downloads and
-installs in the background, so you won't need to reinstall.
+**Linux (x86_64)** — `chrona-x.y.z-linux-x86_64.tar.gz` on Arch and other
+rolling distros (unpack, run `./install.sh`), or the `.deb` / `.rpm`. Needs
+`webkit2gtk-4.1`, `gtk3`, and `libayatana-appindicator` for the tray.
+
+> **Wayland:** the compositor draws the glass, not the app — Mica and Acrylic
+> are Windows features. The tarball ships `hyprland-chrona.lua` to append to
+> `~/.config/hypr/hyprland.lua`; without it the card renders flat grey. Window
+> position, always-on-top, and auto-update don't apply on Linux — see the
+> tarball's README.
 
 ## Using Chrona
 

@@ -1,6 +1,8 @@
 // menu.rs — the right-click context menu and the system-tray icon/menu.
 
-use tauri::menu::{CheckMenuItemBuilder, Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem};
+use tauri::menu::{
+    CheckMenuItemBuilder, ContextMenu, Menu, MenuBuilder, MenuItemBuilder, PredefinedMenuItem,
+};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager};
 
@@ -45,6 +47,29 @@ pub fn build_context_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         .item(&reset)
         .item(&quit)
         .build()
+}
+
+/// Pop the context menu at the click point.
+///
+/// Wayland has no root window for a popup to hang off, so muda's default
+/// cursor-position path can't map the menu at all ("Couldn't map ... as popup
+/// because it doesn't have a parent"): GTK falls back to a toplevel, which
+/// loses its grab and vanishes the instant the button comes up. Anchoring to
+/// the widget's own surface with an explicit position is what Wayland accepts.
+/// Windows keeps muda's cursor-tracking default.
+pub fn popup_context_menu(app: &AppHandle, window: tauri::Window, x: f64, y: f64) {
+    let Ok(menu) = build_context_menu(app) else {
+        return;
+    };
+    #[cfg(windows)]
+    {
+        let _ = (x, y);
+        let _ = menu.popup(window);
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = menu.popup_at(window, tauri::LogicalPosition::new(x, y));
+    }
 }
 
 // ── system tray ──────────────────────────────────────────────────────────────

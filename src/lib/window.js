@@ -1,6 +1,6 @@
 // window.js — frontend helpers for driving the native Tauri window:
 // auto-fit height, width<->size% mapping, drag, resize, context menu.
-import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 
 export const MIN_WIDTH = 280;
@@ -14,16 +14,24 @@ export const sizeForWidth = (w) =>
 
 const appWindow = getCurrentWindow();
 
+// Sizing goes through the backend rather than appWindow.setSize(): on Wayland
+// a plain resize request is dropped by GTK, and only the native side can apply
+// the geometry-hint trick that actually works there.
 export async function setWindowSize(width, height) {
-  await appWindow.setSize(new LogicalSize(Math.round(width), Math.round(height)));
+  await invoke("set_widget_size", {
+    width: Math.round(width),
+    height: Math.round(height),
+  });
 }
 
 export async function startDragging() {
   try { await appWindow.startDragging(); } catch (_) {}
 }
 
-export function showContextMenu() {
-  invoke("show_context_menu").catch(() => {});
+// The click point travels with the request: Wayland can only anchor the popup
+// to the widget's own surface, so the native side needs coordinates.
+export function showContextMenu(x, y) {
+  invoke("show_context_menu", { x: Math.round(x), y: Math.round(y) }).catch(() => {});
 }
 
 export { appWindow };

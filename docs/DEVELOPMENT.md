@@ -71,6 +71,7 @@ src-tauri/
     updater.rs                   update check / auto-update
   tauri.conf.json                window config, bundle, updater
   capabilities/default.json      IPC permissions
+scripts/package-linux.sh         Linux tarball for rolling distros
 .github/workflows/release.yml    tagged-release build + publish
 ```
 
@@ -126,8 +127,21 @@ git tag v0.1.1
 git push origin v0.1.1
 ```
 
-The workflow builds on Windows, signs the bundles with the updater key, and
-publishes a GitHub Release (MSI + NSIS + `latest.json`).
+The workflow builds three matrix entries — Windows x64, Windows ARM64, and
+Linux x86_64 — signs the bundles with the updater key, and publishes a GitHub
+Release: NSIS installers, `.deb` / `.rpm`, a plain Linux tarball, and
+`latest.json`.
+
+The Linux entry runs on `ubuntu-22.04` deliberately: its glibc is old enough
+that the tarball still runs on rolling distros like Arch. It does **not** build
+an AppImage — linuxdeploy's gtk plugin would bundle the runner's WebKitGTK
+2.36, which behaves worse under Wayland than the current WebKit a rolling
+distro already ships. The trade-off is that Linux has no auto-update path, since
+AppImage is the only format the Tauri updater handles there.
+
+`scripts/package-linux.sh` builds the tarball (binary, `.desktop`, icons,
+`install.sh`, and the Hyprland window rules). Run it locally after a
+`bun run tauri build` to check its contents.
 
 ### Signing key
 
@@ -147,4 +161,6 @@ The app checks `plugins.updater.endpoints`
 (`https://github.com/qBitnaut/chrona/releases/latest/download/latest.json`),
 and if a newer signed version exists it downloads and installs the new bundle in
 place, then relaunches. The "Automatic updates" setting (default on) runs this on
-launch; the Settings → "Check for updates" button does it manually.
+launch; the Settings → "Check for updates" button does it manually. Linux builds
+publish no updater artifact, so this is a no-op there — turn "Automatic updates"
+off on Linux.

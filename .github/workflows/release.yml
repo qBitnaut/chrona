@@ -1,9 +1,9 @@
 name: Release
 
-# Tag a version (e.g. v0.1.0) to build the Windows installers (x64 + ARM64),
-# sign them for the updater, and publish a GitHub Release with a single
-# `latest.json` whose per-architecture entries let each machine auto-update to
-# the right build.
+# Tag a version (e.g. v0.1.0) to build the Windows installers (x64 + ARM64) and
+# the Linux bundles, sign them for the updater, and publish a GitHub Release
+# with a single `latest.json` whose per-platform entries let each machine
+# auto-update to the right build.
 on:
   push:
     tags:
@@ -17,7 +17,7 @@ jobs:
   release:
     strategy:
       fail-fast: false
-      # sequential so each arch merges its entry into the release's latest.json
+      # sequential so each target merges its entry into the release's latest.json
       # (rather than racing/overwriting it)
       max-parallel: 1
       matrix:
@@ -31,10 +31,36 @@ jobs:
             target: aarch64-pc-windows-msvc
             # NSIS is the updater format on Windows and the most reliable on ARM
             bundles: "--bundles nsis"
+          # 22.04 on purpose: its glibc is old enough that the tarball still
+          # runs on rolling distros, which is the point of shipping one.
+          - arch: linux-x64
+            runner: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            # the config's `nsis` target is Windows-only, so override it here.
+            # No AppImage: linuxdeploy's gtk plugin would bundle the runner's
+            # WebKitGTK 2.36, which is older and worse on Wayland than what a
+            # rolling distro already has. The tarball links against the host's
+            # instead. Trade-off: no auto-update on Linux (AppImage is the only
+            # format the Tauri updater supports there).
+            bundles: "--bundles deb,rpm"
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libxdo-dev \
+            libssl-dev \
+            patchelf \
+            build-essential curl wget file
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -65,16 +91,38 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "Chrona ${{ github.ref_name }}"
           releaseBody: |
-            Chrona — a frameless desktop clock + live-weather glass widget for Windows.
+            Chrona — a frameless desktop clock + live-weather glass widget.
 
-            ## Install
+            ## Windows
             Download the installer for your PC and run it:
             - **x64** (most PCs): `Chrona_*_x64-setup.exe`
             - **ARM64** (Surface / Snapdragon): `Chrona_*_arm64-setup.exe`
 
             Requires the Microsoft WebView2 runtime (preinstalled on Windows 11).
             Once installed, Chrona keeps itself up to date automatically.
+
+            ## Linux (x86_64)
+            - **Arch and other rolling distros**: `chrona-*-linux-x86_64.tar.gz` —
+              unpack and run `./install.sh`. Links against your system
+              WebKitGTK, which is what a current Wayland stack wants.
+            - **Debian / Fedora**: `.deb` / `.rpm`.
+
+            Linux builds do not auto-update — turn Automatic updates off in
+            Settings and grab a new release when you want one.
+
+            On Wayland the compositor supplies the glass, not the app. Hyprland
+            users: append the bundled `hyprland-chrona.lua` to
+            `~/.config/hypr/hyprland.lua`, or the card renders flat grey. The
+            tarball's README lists the other Linux limitations.
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: true
           args: ${{ matrix.bundles }} --target ${{ matrix.target }}
+
+      - name: Package and upload the Linux tarball
+        if: runner.os == 'Linux' && startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tarball="$(scripts/package-linux.sh dist-linux)"
+          gh release upload "${{ github.ref_name }}" "$tarball" --clobber

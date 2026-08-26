@@ -118,3 +118,34 @@ pub fn apply_material(_window: &WebviewWindow, _kind: &str, _radius: f64) {}
 pub fn apply_round_region(_window: &WebviewWindow, _radius: f64) {}
 #[cfg(not(windows))]
 pub fn dwm_round(_window: &WebviewWindow) {}
+
+/// GTK derives a toplevel's size hints from `resizable`, and a non-resizable
+/// window is pinned by the Wayland compositor — which also blocks the widget's
+/// own sizing. Windows doesn't couple the two, so this is Linux/BSD only.
+#[cfg(not(windows))]
+pub fn allow_programmatic_resize(window: &WebviewWindow) {
+    let _ = window.set_resizable(true);
+}
+
+#[cfg(windows)]
+pub fn allow_programmatic_resize(_window: &WebviewWindow) {}
+
+/// Resize the widget window.
+///
+/// On Wayland a plain resize request is advisory: tao routes it to
+/// `gtk_window_resize`, and GTK drops it — measured, not guessed. Geometry
+/// hints *are* honoured, so pinning min == max is what actually moves the
+/// window, and it suits a fixed-size widget: the size we ask for is the size it
+/// keeps. Windows resizes directly.
+#[cfg(not(windows))]
+pub fn set_widget_size(window: &WebviewWindow, width: f64, height: f64) {
+    let size = tauri::LogicalSize::new(width, height);
+    let _ = window.set_min_size(Some(size));
+    let _ = window.set_max_size(Some(size));
+    let _ = window.set_size(size);
+}
+
+#[cfg(windows)]
+pub fn set_widget_size(window: &WebviewWindow, width: f64, height: f64) {
+    let _ = window.set_size(tauri::LogicalSize::new(width, height));
+}

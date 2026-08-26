@@ -43,6 +43,7 @@ pub fn run() {
             weather::geocode_search,
             actions::show_context_menu,
             actions::reset_position,
+            actions::set_widget_size,
             updater::check_for_updates,
         ])
         // context-menu (popup) events route here
