@@ -5,6 +5,11 @@ import React from "react";
 import { load } from "@tauri-apps/plugin-store";
 import { emit, listen } from "@tauri-apps/api/event";
 
+// A few settings map to Windows-only native features (DWM materials, the
+// updater feed). They're hidden on Linux rather than left as dead controls.
+export const IS_LINUX =
+  /Linux/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent);
+
 export const STORE_FILE = "settings.json";
 export const SETTINGS_CHANGED = "settings-changed";
 

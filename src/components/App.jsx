@@ -8,7 +8,7 @@ import {
 } from "./clock-widget.jsx";
 import { codeToCondition, useLightning } from "./weather-fx.jsx";
 import { useWeather } from "../lib/weather.js";
-import { useSettings, setSetting, DEFAULTS } from "../lib/settings.js";
+import { useSettings, setSetting, DEFAULTS, IS_LINUX } from "../lib/settings.js";
 import {
   widthForSize, sizeForWidth, setWindowSize, startDragging, showContextMenu,
   MIN_WIDTH, MAX_WIDTH,
@@ -40,8 +40,7 @@ function deriveLive(cond, d) {
 
 // Linux has no DWM backdrop; the compositor draws the blur behind the window
 // and clips its corners. Keep this in step with the `rounding` in the Chrona
-// window rule (~/.config/hypr/hyprland.lua on Omarchy).
-const IS_LINUX = /Linux/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent);
+// window rule (see hyprland-chrona.lua in the Linux tarball).
 const LINUX_BACKDROP_RADIUS = 18;
 
 function glassVars(dark, bgOp, accent) {

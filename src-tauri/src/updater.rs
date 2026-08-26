@@ -9,6 +9,12 @@ use tauri_plugin_updater::UpdaterExt;
 /// the latest signed bundle and relaunch. Best effort; no-ops if the endpoint is
 /// unreachable or there's nothing newer.
 pub fn check_on_startup(app: AppHandle) {
+    // Linux releases ship no updater artifact (the updater only handles
+    // AppImages, which the release deliberately doesn't build), so the check
+    // could only ever come back empty. The toggle is hidden there too.
+    if cfg!(target_os = "linux") {
+        return;
+    }
     if !crate::actions::get_bool(&app, "autoUpdate", true) {
         return;
     }

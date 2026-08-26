@@ -5,7 +5,7 @@ import {
   TweakSection, TweakSlider, TweakToggle, TweakRadio, TweakSelect, TweakButton,
 } from "./controls.jsx";
 import { ZONES, PHASES } from "./clock-widget.jsx";
-import { useSettings } from "../lib/settings.js";
+import { useSettings, IS_LINUX } from "../lib/settings.js";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getVersion } from "@tauri-apps/api/app";
@@ -129,7 +129,11 @@ export default function Settings() {
         <TweakToggle label="Pin (lock position)" value={t.pinned} onChange={set("pinned")} />
         <TweakToggle label="Close to tray" value={t.closeToTray} onChange={set("closeToTray")} />
         <TweakToggle label="Pause animation on battery saver" value={t.pauseOnBattery} onChange={set("pauseOnBattery")} />
-        <TweakToggle label="Automatic updates" value={t.autoUpdate} onChange={set("autoUpdate")} />
+        {/* Linux publishes no updater artifact — the updater only handles
+            AppImages, which the release deliberately doesn't ship. */}
+        {!IS_LINUX && (
+          <TweakToggle label="Automatic updates" value={t.autoUpdate} onChange={set("autoUpdate")} />
+        )}
       </>
     ),
     appearance: (
@@ -247,8 +251,10 @@ export default function Settings() {
         <div style={{ display: "flex", gap: 8 }}>
           <TweakButton label="Reset position" secondary
                        onClick={() => invoke("reset_position").catch(() => {})} />
-          <TweakButton label="Check for updates"
-                       onClick={() => invoke("check_for_updates").catch(() => {})} />
+          {!IS_LINUX && (
+            <TweakButton label="Check for updates"
+                         onClick={() => invoke("check_for_updates").catch(() => {})} />
+          )}
         </div>
       </>
     ),
