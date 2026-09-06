@@ -1,6 +1,6 @@
 {
   "name": "chrona",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Chrona — a frameless desktop clock + live-weather glass widget",
   "type": "module",
   "private": true,
