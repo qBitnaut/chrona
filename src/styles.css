@@ -3,6 +3,9 @@
    desktop chrome removed and the widget promoted to fill a transparent,
    Mica-blurred Tauri window. */
 
+@import './fonts/fonts-shared.css';
+@import './fonts/fonts-widget.css';
+
 *, *::before, *::after { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 html, body { background: transparent; }

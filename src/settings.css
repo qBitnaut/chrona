@@ -2,6 +2,8 @@
    rounded panel with a custom title bar, a section nav on the left, and the
    controls on the right. Follows light/dark via [data-theme]. */
 
+@import './fonts/fonts-shared.css';
+
 *, *::before, *::after { box-sizing: border-box; }
 /* opaque window (DWM rounds the corners); dark fallback avoids a white flash
    before React paints the themed shell */
